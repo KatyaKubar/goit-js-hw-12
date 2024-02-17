@@ -1,0 +1,12 @@
+import{S as d,i}from"./assets/vendor-5b791d57.js";(function(){const t=document.createElement("link").relList;if(t&&t.supports&&t.supports("modulepreload"))return;for(const e of document.querySelectorAll('link[rel="modulepreload"]'))r(e);new MutationObserver(e=>{for(const n of e)if(n.type==="childList")for(const s of n.addedNodes)s.tagName==="LINK"&&s.rel==="modulepreload"&&r(s)}).observe(document,{childList:!0,subtree:!0});function a(e){const n={};return e.integrity&&(n.integrity=e.integrity),e.referrerPolicy&&(n.referrerPolicy=e.referrerPolicy),e.crossOrigin==="use-credentials"?n.credentials="include":e.crossOrigin==="anonymous"?n.credentials="omit":n.credentials="same-origin",n}function r(e){if(e.ep)return;e.ep=!0;const n=a(e);fetch(e.href,n)}})();const u="42372346-6df3db87eb4ada5723d622fbb",m=document.querySelector(".search-form"),l=document.querySelector(".gallery"),f=document.querySelector(".search-input"),p=new d(".gallery a",{captionsData:"alt",captionDelay:250}),c=document.querySelector(".loader");m.addEventListener("submit",h);function h(o){o.preventDefault();const t=f.value.trim();if(!t){i.warning({title:"Warning!",message:"Please enter image name!",position:"topRight"});return}b(),c.style.display="flex";const a=new URLSearchParams({key:u,q:t,image_type:"photo",orientation:"horizontal",safesearch:!0});fetch(`https://pixabay.com/api/?${a}`).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(r=>{if(r.hits.length===0){i.error({message:"Sorry, there are no images matching your search query. Please try again!",position:"topRight"});return}g(r.hits),p.refresh()}).catch(r=>{console.error("Error fetching images:",r),i.error({message:"Failed to fetch images. Please try again later.",position:"topRight"})}).finally(()=>{c.style.display="none"})}function g(o){const t=document.createDocumentFragment();o.forEach(a=>{const r=y(a);t.appendChild(r)}),l.appendChild(t)}function y(o){const t=document.createElement("div");return t.classList.add("card"),t.innerHTML=`
+    <a class="gallery-link" href="${o.largeImageURL}">
+        <img class="card-image" src="${o.webformatURL}" alt="${o.tags}" loading="lazy">
+      </a>
+      <div class="card-info">
+        <p class="card-text"><b>Likes:</b> ${o.likes}</p>
+        <p class="card-text"><b>Views:</b> ${o.views}</p>
+        <p class="card-text"><b>Comments:</b> ${o.comments}</p>
+        <p class="card-text"><b>Downloads:</b> ${o.downloads}</p>
+      </div>
+    `,t}function b(){l.innerHTML=""}
+//# sourceMappingURL=commonHelpers.js.map
