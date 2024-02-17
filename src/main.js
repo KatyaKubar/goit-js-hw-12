@@ -1,7 +1,8 @@
-import axios from 'axios';
-import SimpleLightbox from 'simplelightbox';
-import 'simplelightbox/dist/simple-lightbox.min.css';
+import { getImages } from './js/api.js';
+import { renderGallery } from './js/gallery.js';
+
 import iziToast from 'izitoast';
+import SimpleLightbox from 'simplelightbox';
 import 'izitoast/dist/css/iziToast.min.css';
 
 const form = document.querySelector('.form');
@@ -25,7 +26,7 @@ async function onSearchImages(e) {
   countPage = 1;
   try {
     if (searchValue !== '') {
-      const data = await getImages(searchValue);
+      const data = await getImages(searchValue, countPage);
       if (data.hits.length === 0) {
         iziToast.show({
           message:
@@ -36,7 +37,9 @@ async function onSearchImages(e) {
           messageColor: '#FFFFFF',
         });
       } else {
-        renderGallery(data.hits);
+        const galleryMarkup = renderGallery(data.hits, lightbox);
+        gallery.insertAdjacentHTML('beforeend', galleryMarkup);
+        lightbox.refresh();
         loadBtn.classList.remove('hidden');
       }
     } else {
@@ -57,26 +60,16 @@ async function onSearchImages(e) {
   }
 }
 
-function getGalleryItemHeight() {
-  const galleryItem = document.querySelector('.gallery-item');
-  const { height } = galleryItem.getBoundingClientRect();
-  return height;
-}
-
 async function onLoadImages() {
   loadBtn.classList.add('hidden');
   loader.classList.remove('hidden');
-  const galleryItemHeight = getGalleryItemHeight();
   countPage += 1;
   try {
-    const data = await getImages();
-    renderGallery(data.hits);
+    const data = await getImages(searchValue, countPage);
+    const galleryMarkup = renderGallery(data.hits, lightbox);
+    gallery.insertAdjacentHTML('beforeend', galleryMarkup);
+    lightbox.refresh();
     loadBtn.classList.remove('hidden');
-    window.scrollBy({
-      top: galleryItemHeight * 2,
-      left: 0,
-      behavior: 'smooth',
-    });
     if (data.totalHits - countPage * 40 <= 0) {
       iziToast.show({
         message: "We're sorry, but you've reached the end of search results.",
@@ -94,55 +87,10 @@ async function onLoadImages() {
   }
 }
 
-const getImages = async function () {
-  const API_KEY = '42001706-084c655b89d9d100c07cefb17';
-  const url = 'https://pixabay.com/api/';
-  const response = await axios.get(url, {
-    params: {
-      key: API_KEY,
-      q: searchValue,
-      image_type: 'photo',
-      orientation: 'horizontal',
-      safesearch: 'true',
-      page: countPage,
-      per_page: 40,
-    },
-  });
-  return response.data;
-};
-
-function renderGallery(data) {
-  const markup = data.map(item => {
-    const {
-      webformatURL,
-      largeImageURL,
-      tags,
-      likes,
-      views,
-      comments,
-      downloads,
-    } = item;
-    return `<li class="gallery-item">
-                <a class="gallery-link" href=${largeImageURL}>
-                <img src=${webformatURL} alt="${tags}" /></a>
-                    <ul class="image-desc">
-                        <li class="image-desc-item"><p>Likes</p><p>${likes}</p></li>
-                        <li class="image-desc-item"><p>Views</p><p>${views}</p></li>
-                        <li class="image-desc-item"><p>Comments</p><p>${comments}</p></li>
-                        <li class="image-desc-item"><p>Downloads</p><p>${downloads}</p></li>
-                    </ul>
-            </li>`;
-  });
-
-  addMarkup(markup);
-  lightbox.refresh();
-}
-
-function addMarkup(markup) {
-  markup = markup.join('');
-  gallery.insertAdjacentHTML('beforeend', markup);
+document.addEventListener('DOMContentLoaded', () => {
   lightbox = new SimpleLightbox('.gallery a', {
     captionDelay: 250,
     captionsData: 'alt',
   });
-}
+});
+
