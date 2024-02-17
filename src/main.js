@@ -1,186 +1,148 @@
-/*'use strict';
-
+import axios from 'axios';
+import SimpleLightbox from 'simplelightbox';
+import 'simplelightbox/dist/simple-lightbox.min.css';
 import iziToast from 'izitoast';
 import 'izitoast/dist/css/iziToast.min.css';
 
-import SimpleLightbox from 'simplelightbox';
-import 'simplelightbox/dist/simple-lightbox.min.css';
+const form = document.querySelector('.form');
+const gallery = document.querySelector('.gallery');
+const loadBtn = document.querySelector('.load-btn');
+const loader = document.querySelector('.loader');
 
-const API_KEY = '42372346-6df3db87eb4ada5723d622fbb';
-const searchFormElement = document.querySelector('.search-form');
-const galleryElement = document.querySelector('.gallery');
-const textInputElement = document.querySelector('.search-input');
-const lightbox = new SimpleLightbox('.gallery a', {
-  captionsData: 'alt',
-  captionDelay: 250,
-});
+let lightbox;
+let countPage = 1;
+let searchValue;
 
-const loaderElement = document.querySelector('.loader');
-loaderElement.style.display = 'none';
+form.addEventListener('submit', onSearchImages);
+loadBtn.addEventListener('click', onLoadImages);
 
-searchFormElement.addEventListener('submit', handleFormSubmit);
-
-function handleFormSubmit(event) {
-  event.preventDefault();
-  const inputValue = textInputElement.value.trim();
-
-  if (!inputValue) {
-    iziToast.warning({
-      title: 'Warning!',
-      message: 'Please enter image name!',
-      position: 'topRight',
-    });
-    return;
-  }
-
-  clearGallery();
-  loaderElement.style.display = 'block';
-
-  const searchParams = new URLSearchParams({
-    key: API_KEY,
-    q: inputValue,
-    image_type: 'photo',
-    orientation: 'horizontal',
-    safesearch: true,
-  });
-
-  fetch(`https://pixabay.com/api/?${searchParams}`)
-    .then(response => {
-      loaderElement.style.display = 'none';
-
-      if (!response.ok) {
-        throw new Error(response.status);
-      }
-      return response.json();
-    })
-    .then(data => {
+async function onSearchImages(e) {
+  e.preventDefault();
+  gallery.innerHTML = '';
+  loader.classList.remove('hidden');
+  loadBtn.classList.add('hidden');
+  searchValue = form.elements.q.value.trim();
+  countPage = 1;
+  try {
+    if (searchValue !== '') {
+      const data = await getImages(searchValue);
       if (data.hits.length === 0) {
-        iziToast.error({
+        iziToast.show({
           message:
             'Sorry, there are no images matching your search query. Please try again!',
           position: 'topRight',
+          backgroundColor: '#EF4040',
+          titleColor: '#FFFFFF',
+          messageColor: '#FFFFFF',
         });
-        return;
+      } else {
+        renderGallery(data.hits);
+        loadBtn.classList.remove('hidden');
       }
-      renderImages(data.hits);
-      lightbox.refresh();
-    })
-    .catch(error => {
-      console.error('Error fetching images:', error);
-      iziToast.error({
-        message: 'Failed to fetch images. Please try again later.',
+    } else {
+      iziToast.show({
+        message: 'Please fill out the search field',
         position: 'topRight',
+        backgroundColor: '#EF4040',
+        titleColor: '#FFFFFF',
+        messageColor: '#FFFFFF',
       });
-    });
-}*/
-'use strict';
-
-import iziToast from 'izitoast';
-import 'izitoast/dist/css/iziToast.min.css';
-
-import SimpleLightbox from 'simplelightbox';
-import 'simplelightbox/dist/simple-lightbox.min.css';
-
-const API_KEY = '42372346-6df3db87eb4ada5723d622fbb';
-const searchFormElement = document.querySelector('.search-form');
-const galleryElement = document.querySelector('.gallery');
-const textInputElement = document.querySelector('.search-input');
-const lightbox = new SimpleLightbox('.gallery a', {
-  captionsData: 'alt',
-  captionDelay: 250,
-});
-
-const loaderElement = document.querySelector('.loader');
-
-searchFormElement.addEventListener('submit', handleFormSubmit);
-
-function handleFormSubmit(event) {
-  event.preventDefault();
-  const inputValue = textInputElement.value.trim();
-
-  if (!inputValue) {
-    iziToast.warning({
-      title: 'Warning!',
-      message: 'Please enter image name!',
-      position: 'topRight',
-    });
-    return;
+      loader.classList.add('hidden');
+    }
+  } catch (error) {
+    console.log(error);
+  } finally {
+    loader.classList.add('hidden');
+    form.reset();
   }
+}
 
-  clearGallery();
-  loaderElement.style.display = 'flex';
+function getGalleryItemHeight() {
+  const galleryItem = document.querySelector('.gallery-item');
+  const { height } = galleryItem.getBoundingClientRect();
+  return height;
+}
 
-  const searchParams = new URLSearchParams({
-    key: API_KEY,
-    q: inputValue,
-    image_type: 'photo',
-    orientation: 'horizontal',
-    safesearch: true,
-  });
-
-  fetch(`https://pixabay.com/api/?${searchParams}`)
-    .then(response => {
-      // loaderElement.style.display = 'none'; // Remove this line
-
-      if (!response.ok) {
-        throw new Error(response.status);
-      }
-      return response.json();
-    })
-    .then(data => {
-      if (data.hits.length === 0) {
-        iziToast.error({
-          message:
-            'Sorry, there are no images matching your search query. Please try again!',
-          position: 'topRight',
-        });
-        return;
-      }
-      renderImages(data.hits);
-      lightbox.refresh();
-    })
-    .catch(error => {
-      console.error('Error fetching images:', error);
-      iziToast.error({
-        message: 'Failed to fetch images. Please try again later.',
-        position: 'topRight',
-      });
-    })
-    .finally(() => {
-      loaderElement.style.display = 'none'; // Hide the loader after the fetch operation
+async function onLoadImages() {
+  loadBtn.classList.add('hidden');
+  loader.classList.remove('hidden');
+  const galleryItemHeight = getGalleryItemHeight();
+  countPage += 1;
+  try {
+    const data = await getImages();
+    renderGallery(data.hits);
+    loadBtn.classList.remove('hidden');
+    window.scrollBy({
+      top: galleryItemHeight * 2,
+      left: 0,
+      behavior: 'smooth',
     });
+    if (data.totalHits - countPage * 40 <= 0) {
+      iziToast.show({
+        message: "We're sorry, but you've reached the end of search results.",
+        position: 'topRight',
+        backgroundColor: '#03a9f4',
+        titleColor: '#FFFFFF',
+        messageColor: '#FFFFFF',
+      });
+      loadBtn.classList.add('hidden');
+    }
+  } catch (error) {
+    console.log(error);
+  } finally {
+    loader.classList.add('hidden');
+  }
 }
 
-function renderImages(images) {
-  const fragment = document.createDocumentFragment();
+const getImages = async function () {
+  const API_KEY = '42001706-084c655b89d9d100c07cefb17';
+  const url = 'https://pixabay.com/api/';
+  const response = await axios.get(url, {
+    params: {
+      key: API_KEY,
+      q: searchValue,
+      image_type: 'photo',
+      orientation: 'horizontal',
+      safesearch: 'true',
+      page: countPage,
+      per_page: 40,
+    },
+  });
+  return response.data;
+};
 
-  images.forEach(image => {
-    const imageCardElement = createImageCard(image);
-    fragment.appendChild(imageCardElement);
+function renderGallery(data) {
+  const markup = data.map(item => {
+    const {
+      webformatURL,
+      largeImageURL,
+      tags,
+      likes,
+      views,
+      comments,
+      downloads,
+    } = item;
+    return `<li class="gallery-item">
+                <a class="gallery-link" href=${largeImageURL}>
+                <img src=${webformatURL} alt="${tags}" /></a>
+                    <ul class="image-desc">
+                        <li class="image-desc-item"><p>Likes</p><p>${likes}</p></li>
+                        <li class="image-desc-item"><p>Views</p><p>${views}</p></li>
+                        <li class="image-desc-item"><p>Comments</p><p>${comments}</p></li>
+                        <li class="image-desc-item"><p>Downloads</p><p>${downloads}</p></li>
+                    </ul>
+            </li>`;
   });
 
-  galleryElement.appendChild(fragment);
+  addMarkup(markup);
+  lightbox.refresh();
 }
 
-function createImageCard(image) {
-  const imageCardElement = document.createElement('div');
-  imageCardElement.classList.add('card');
-
-  imageCardElement.innerHTML = `
-    <a class="gallery-link" href="${image.largeImageURL}">
-        <img class="card-image" src="${image.webformatURL}" alt="${image.tags}" loading="lazy">
-      </a>
-      <div class="card-info">
-        <p class="card-text"><b>Likes:</b> ${image.likes}</p>
-        <p class="card-text"><b>Views:</b> ${image.views}</p>
-        <p class="card-text"><b>Comments:</b> ${image.comments}</p>
-        <p class="card-text"><b>Downloads:</b> ${image.downloads}</p>
-      </div>
-    `;
-
-  return imageCardElement;
-}
-
-function clearGallery() {
-  galleryElement.innerHTML = '';
+function addMarkup(markup) {
+  markup = markup.join('');
+  gallery.insertAdjacentHTML('beforeend', markup);
+  lightbox = new SimpleLightbox('.gallery a', {
+    captionDelay: 250,
+    captionsData: 'alt',
+  });
 }
