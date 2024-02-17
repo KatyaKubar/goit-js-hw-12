@@ -142,7 +142,7 @@ body {
   border-radius: 50%;
   display: inline-block;
   position: relative;
-  background: linear-gradient(0deg, rgba(255, 61, 0, 0.2) 33%, #ff3d00 100%);
+  background: linear-gradient(0deg, rgba(255, 61, 0, 0.2) 33%, #b83006 100%);
   box-sizing: border-box;
   animation: rotation 1s linear infinite;
 }
